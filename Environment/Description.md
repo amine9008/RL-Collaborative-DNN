@@ -1,0 +1,1 @@
+This folder contains the source code for the implementation of the environment. This environment contains edge devices (represented by the EdgeDevice class), as well as edge servers (represented by the EdgeServer class). The environment inherits from the gymnasium.Env class
