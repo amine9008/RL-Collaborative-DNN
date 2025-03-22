@@ -61,19 +61,25 @@ def on_message(client, userdata, msg):
         result = model(image_tensor)
         y_pred = torch.argmax(result, dim=1).item()
         print("Total Inference : result shape {}, result value {}, y_hat {}, y_true {}".format(result.shape, result, y_pred, y))
-    
     elif action_id == "2":
         tensor_bytes = base64.b64decode(tensor_base64)
         buffer = io.BytesIO(tensor_bytes)
         tensor_np = np.load(buffer)
         tensor_torch = torch.tensor(tensor_np)
         print("server side duration : {} mS".format(1000 * (time.time() - float(timestamp))))
-        
         gap = nn.AdaptiveAvgPool2d(1)
         features = gap(tensor_torch).view(1, 1280)
         result = part2(features)
         y_pred = torch.argmax(result, dim=1).item()
         print("Total Inference : result shape {}, result value {}, y_hat {}, y {}".format(result.shape, result, y_pred, y))
+    elif action_id == "3":
+        tensor_bytes = base64.b64decode(tensor_base64)
+        buffer = io.BytesIO(tensor_bytes)
+        tensor_np = np.load(buffer)
+        tensor_torch = torch.tensor(tensor_np)
+        y_pred = torch.argmax(tensor_torch, dim=1).item()
+        print("Total Inference : result shape {}, result value {}, y_hat {}, y {}".format(tensor_torch.shape, tensor_torch, y_pred, y))
+
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
