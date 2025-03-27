@@ -2,6 +2,11 @@
 #  each agent has its q table : its observation X its actions
 import pickle
 from datetime import datetime
+from ../Environment/edgedevice import EdgeDevice
+from ../Environment/edgeserver import EdgeServer
+from ../Environment Environment import Environment
+from ../Environment/wrapper import NQQEnvWrapper
+
 class QLearningAgent:
     def __init__(self, env,start_from_episode = 0, learning_rate=0.1, discount_factor=0.9, exploration_prob=0.8, exploration_decay=0.995):
         self.learning_rate = learning_rate
@@ -51,11 +56,11 @@ def load_progression_metrics(path):
         return (reward, throughput, energy, penalty, falseclass)
 
 
-dataSourceDirectory = datasets_root_directory + 'CatsDogsDataset/Dog and Cat .png/'
-subdirs = ['Cat/','Dog/']
-model_path = datasets_root_directory + 'CatsDogsDataset/DNN_MODELS/EfficientNetB3_CatsDogs.h5'
+dataSourceDirectory = datasets_root_directory + 'train/'
+subdirs = os.path.listdir(dataSourceDirectory)
+model_path = datasets_root_directory + 'DNN_MODELS/EfficientNetB3_Trained.h5'
 base_model = tf.keras.models.load_model(model_path)
-marl_q_directory = datasets_root_directory + '/CatsDogsDataset/Checkpoint/QLearning/marl7/'
+marl_q_directory = datasets_root_directory + '/CatsDogsDataset/Checkpoint/QLearning/draq/'
 
 
 cutLayers_B3 = [138, 256]
@@ -85,35 +90,33 @@ serverCacheIntervals = [0,25,75,100]
 
 #old experiment episode max length was 10
 
-agent71 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=[edgeDevice1], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
+agent71 = Environment(edgeDevices=[edgeDevice1], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
 agent71 = NQKKEnvWrapper(agent71 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 qdevice1 = QLearningAgent(env = agent71)
 
-agent72 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=[edgeDevice2], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
+agent72 = Environment(edgeDevices=[edgeDevice2], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
 agent72 = NQKKEnvWrapper(agent72 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 qdevice2 = QLearningAgent(env = agent72)
 
 
-agent73 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=[edgeDevice3], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
+agent73 = Environment(edgeDevices=[edgeDevice3], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
 agent73 = NQKKEnvWrapper(agent73 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 qdevice3 = QLearningAgent(env = agent73)
 
 
-agent7 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0, \
+agent7 = Environment(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0, \
                                                          episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
-#qagent7 = DummyVecEnv([lambda: NQKKEnvWrapper(agent7 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)])
-#qagent7 = VecCheckNan(qagent7 , raise_exception=True)
 qagent7 = NQKKEnvWrapper(agent7 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
-print("State Space, big env {}".format(qagent7.observation_space))
-print("Action Space Big env {}".format(qagent7.action_space))
+print("State Space {}".format(qagent7.observation_space))
+print("Action Space {}".format(qagent7.action_space))
 # Create Q-learning agents
 
 num_episodes = 0
