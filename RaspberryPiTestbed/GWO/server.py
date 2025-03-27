@@ -188,42 +188,6 @@ def on_message(client, userdata, msg):
             e_throughput[node_id] = e_throughput[node_id] + 1
             t_throughput[node_id] = t_throughput[node_id] + 1
             
-def train():
-    global ac_model, ac_optimizer, experience_buffer, lookup_rewards, states
-    while True:
-        if len(experience_buffer) < 7: # Wait for enough data
-            time.sleep(0.1)  # Prevent CPU overload
-            continue
-        state_tensor, action, old_value = experience_buffer.pop(0)
-        _, new_value = ac_model(state_tensor)
-        reward = lookup_rewards.get(state_tensor)  # Custom function needed
-        td_target = reward + GAMMA * new_value.detach()
-        old_value = old_value.detach().clone()
-        advantage = td_target - old_value
-        policy_logits, _ = ac_model(state_tensor)
-        log_probs = torch.log_softmax(policy_logits, dim=-1)
-        policy_loss = -log_probs[0, action] * advantage
-        value_loss = nn.MSELoss()(old_value, td_target)
-        loss = policy_loss + value_loss
-        ac_optimizer.zero_grad()
-        loss.backward()
-        ac_optimizer.step()
-        print("Gradient step completed.")
-
-class ActorCritic(nn.Module):
-    def __init__(self, state_size, action_size):
-        super(ActorCritic, self).__init__()
-        self.shared_layer = nn.Linear(state_size, 128)        
-        # Actor (Policy)
-        self.actor = nn.Linear(128, action_size)
-        # Critic (Value Function)
-        self.critic = nn.Linear(128, 1)
-
-    def forward(self, state):
-        x = torch.relu(self.shared_layer(state))
-        policy_logits = self.actor(x)
-        value = self.critic(x)
-        return policy_logits, value
 
 class LookupTable:
     def __init__(self):
@@ -242,17 +206,13 @@ class LookupTable:
         return str(self.table)
 
 
-ac_model = ActorCritic(STATE_SIZE, ACTION_SIZE)
-ac_optimizer = optim.Adam(ac_model.parameters(), lr=LEARNING_RATE)
-experience_buffer = []
-
 lookup_rewards = LookupTable()
 states = np.full(NB_CLIENTS, 0)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #device = torch.device("cpu")
 
-model_path = "D:/Library/copying_to_raspberry/efficientnet_b0_cat_dog_ver2.pth"
+model_path = "directory/efficientnet_b0_cat_dog_ver2.pth"
 model = efficientnet_b0(pretrained=False)
 num_features = model.classifier[1].in_features
 model.classifier[1] = nn.Sequential(
