@@ -1,8 +1,7 @@
-# MECI (w4)
-# Decentralized reward Team Q Learning
-# each agent has its q table : its observation X all actions
-# action selection greedy
-
+from ../../Environment/edgedevice import EdgeDevice
+from ../../Environment/edgeserver import EdgeServer
+from ../../Environment Environment import Environment
+from ../../Environment/wrapper import NQQEnvWrapper
 import pickle
 from datetime import datetime
 class QLearningAgent:
@@ -92,11 +91,11 @@ def load_progression_metrics(path):
         return (reward, throughput, energy, penalty, falseclass)
 
 
-dataSourceDirectory = datasets_root_directory + 'CatsDogsDataset/Dog and Cat .png/'
-subdirs = ['Cat/','Dog/']
-model_path = datasets_root_directory + 'CatsDogsDataset/DNN_MODELS/EfficientNetB3_CatsDogs.h5'
+dataSourceDirectory = datasets_root_directory + 'dataset/'
+subdirs = os.path.listdir(dataSourceDirectory)
+model_path = datasets_root_directory + '/DNN_MODELS/EfficientNetB3_Trained.h5'
 base_model = tf.keras.models.load_model(model_path)
-marl_q_directory = datasets_root_directory + '/CatsDogsDataset/Checkpoint/QLearning/meci/'
+marl_q_directory = datasets_root_directory + '/Checkpoint/QLearning/meci/'
 
 
 cutLayers_B3 = [138, 256]
@@ -128,26 +127,26 @@ serverCacheIntervals = [0,25,75,100]
 
 #old experimùent episode max length was 10
 
-agent71 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=[edgeDevice1], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
+agent71 = Environment(edgeDevices=[edgeDevice1], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
 agent71 = NQKKEnvWrapper(agent71 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 
 
 
-agent72 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=[edgeDevice2], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
+agent72 = Environment(edgeDevices=[edgeDevice2], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
 agent72 = NQKKEnvWrapper(agent72 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 
 
-agent73 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=[edgeDevice3], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
+agent73 = Environment(edgeDevices=[edgeDevice3], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
 agent73 = NQKKEnvWrapper(agent73 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 
 
-agent7 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0, \
+agent7 = Environment(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0, \
                                                          episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
@@ -161,8 +160,8 @@ qdevice3 = QTeamLearningAgent(env = agent73, bigenv=qagent7)
 
 
 
-print("QAGENT7 State Space, big env {}".format(qagent7.observation_space))
-print("QAGENT7 Action Space Big env {}".format(qagent7.action_space))
+print("QAGENT7 State Space {}".format(qagent7.observation_space))
+print("QAGENT7 Action Space {}".format(qagent7.action_space))
 # Create Q-learning agents
 
 num_episodes = 5000
