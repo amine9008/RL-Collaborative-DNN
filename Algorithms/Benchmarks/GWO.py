@@ -1,3 +1,7 @@
+import ../../Environment/EdgeDevice
+from ../../Environment/EdgeServer
+from ../../Environment/Environment
+from ../../Environment/Wrapper
 import numpy as np
 class GreyWolfOptimizer:
     def __init__(self, num_wolves, num_iterations, dim_continuous, dim_discrete, lower_bound_cont, upper_bound_cont, lower_bound_disc, upper_bound_disc, fitness_function, agent):
@@ -120,7 +124,7 @@ def load_progression_metrics(path):
 skip_inference = True
 
 datasets_root_directory = 'drive/'
-dataSourceDirectory = datasets_root_directory + 'Dataset/root/dogcat/train/'
+dataSourceDirectory = datasets_root_directory + 'Dataset/train/'
 subdirs = os.path.listdir()
 model_path = datasets_root_directory + 'DNN_MODELS/EfficientNetB3_CatsDogs.h5'
 #base_model = tf.keras.models.load_model(model_path)
