@@ -1,17 +1,21 @@
 import torch as th
 from datetime import datetime
 from stable_baselines3.common.monitor import Monitor
+from ../../Environment/edgedevice import EdgeDevice
+from ../../Environment/edgeserver import EdgeServer
+from ../../Environment Environment import Environment
+from ../../Environment/wrapper import NQQEnvWrapper
 
 # DMECI 4 agents
 
-datasets_root_directory = "gdrive/MyDrive/"
-dataSourceDirectory = datasets_root_directory + 'CatsDogsDataset/root/dogcat/train/'
-subdirs = ['Cat/','Dog/']
-model_path = datasets_root_directory + 'CatsDogsDataset/DNN_MODELS/EfficientNetB3_CatsDogs.h5'
+datasets_root_directory = "drive/"
+dataSourceDirectory = datasets_root_directory + '/train/'
+subdirs = os.path.listdir(dataSourceDirectory)
+model_path = datasets_root_directory + '/DNN_MODELS/EfficientNetB3_Trained.h5'
 base_model = tf.keras.applications.EfficientNetB3()
 
-ddqn_directory = datasets_root_directory + 'CatsDogsDataset/Checkpoint/A2C/'
-cutLayers_B3 = [138, 256] #pooling layer
+ddqn_directory = datasets_root_directory + '/Checkpoint/A2C/'
+cutLayers_B3 = [138, 256] 
 cutLayers = [138, 256]
 compressionRates = [70.0, 55.0] # No compression for DMECI // approx
 #motorola CPU 0.45 GHz, with 2flops/cycle, RAM 4GB ( 200 MB for cache)
@@ -34,7 +38,7 @@ edgeDevices = [edgeDevice1, edgeDevice2, edgeDevice3, edgeDevice4]
 edgeServer1 = EdgeServer(basemodel=base_model, memory=200000,factor=0.25,cpuFrequency=2000000,transmitPower=20,dataSourcePath=dataSourceDirectory,input_shape=(300,300,3), cutLayers = cutLayers)
 
 edgeServers = [edgeServer1]
-agent7 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0,\
+agent7 = Environment(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0,\
                                                          episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, \
                                                          resourceAllocationMode = True, \
@@ -60,8 +64,6 @@ save_model_callback = SaveModelCallback(save_freq=3, start_from_episode = start_
 
 # Custom callback for saving metrics
 custom_callback = MetricsCallback(data_path = ddqn_directory, start_from_episode = start_from_episode)
-#custom_callback.plot_metrics()
-# Define and train the Double DQN model
 
 th.autograd.set_detect_anomaly(True)
 
