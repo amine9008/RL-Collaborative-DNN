@@ -1,4 +1,3 @@
-#» this code part is meant to test splitting efficientnet b0 model using torch
 import numpy as np
 import torch
 from torchvision import transforms
@@ -154,6 +153,7 @@ part2 = model.classifier
 
 directory_0 = "dataset/Cat/t"
 directory_1 = "dataset/Dog/g"
+directory_2 = "dataset/Pizza/p"
 
 directories = [directory_0, directory_1]
 progressing_list = []
@@ -172,14 +172,6 @@ ALPHA = 0.1
 GAMMA = 0.9
 
 Q = initialize_q_table(NB_LAMBDAS*NB_QUEUE_BINS*NB_FALSE_POS, NB_ACTIONS)
-
-'''
-client = mqtt.Client()
-client.on_message = on_message
-client.connect(BROKER_IP, 1883, 60)
-client.subscribe(TOPIC_REWARD)
-client.loop_start()
-'''
 
 for episode in range(EPISODES):         # for each episode
     e_throughput = 0
@@ -294,15 +286,6 @@ for episode in range(EPISODES):         # for each episode
         queue_percentage = 100.0 * (len(progressing_list) / MAX_QUEUE_LENGTH)
         bin_queue = get_bin_index(queue_percentage, nb_bins = NB_QUEUE_BINS)
         STATE_ID_PRIME = encode_vector([lambda_-1, bin_queue, bin_false]) # this one is not important, it will be recalculated at the reception of new reward and states
-        
-        '''
-        client = mqtt.Client()
-        client.connect(BROKER_IP, 1883, 60)
-        messaget = f"{NODE_ID}:{t_throughput}:{t_energy}:{t_falseclass}:{STATE_ID}:{STATE_ID_PRIME}:{ACTION_ID}"
-        client.publish(TOPIC_TIMESTEP, messaget)
-        client.disconnect()
-        '''
-
         e_reward = e_reward + REWARD
         STATE_ID = STATE_ID_PRIME
         time.sleep(sleep_time)
