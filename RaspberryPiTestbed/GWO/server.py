@@ -123,12 +123,9 @@ def on_message(client, userdata, msg):
         t_throughput[node_id] = t_throughput[node_id] + throughput
         t_energies[node_id] = t_energies[node_id] + energy
         t_false_class[node_id] = t_false_class[node_id] + false_class
-        
         t_reward = utility(t_throughput[node_id], t_energies[node_id], t_false_class[node_id])
         lookup_rewards.add(t_s, t_reward)
-    
         states[node_id] = t_s
-        
         c_states = encode_vector(states)
         one_hot = np.zeros(STATE_SIZE, dtype=np.float32)
         print("Received state {}, AGENT STATE {}, STATE SIZE = {}, states = {}, Global state {}".format(t_s, AGENT_STATE_SIZE,STATE_SIZE, states, c_states))
@@ -139,15 +136,13 @@ def on_message(client, userdata, msg):
         print("input to model {}".format(state_tensor.shape))
         policy_logits, value = ac_model(state_tensor)
         policy_probs = torch.softmax(policy_logits, dim=-1).detach().numpy().flatten()
-        
-        action = np.random.choice(len(policy_probs), p=policy_probs)
-        action1, action2, action3 = decode_vector(action)
-
-        experience_buffer.append((state_tensor, action, value))
-        
+        optimizer = GreyWolfOptimizer(num_wolves, num_iterations, dim_continuous, dim_discrete, lower_bound_cont, upper_bound_cont, lower_bound_disc, upper_bound_disc, fitness_function, qagent7)
+        position = optimizer.optimize()
+        position = position.astype(int)
+        action = [position[0], position[1], position[2]] # 3 devices
         client = mqtt.Client()
         client.connect(BROKER_IP, 1883, 60)
-        message = f"{action1}:{action2}:{action3}"
+        message = f"{action}"
         client.publish(TOPIC_ACTION, message)
         client.disconnect()
         t_throughput[node_id] = 0
@@ -187,7 +182,99 @@ def on_message(client, userdata, msg):
                 t_false_class[node_id] = t_false_class[node_id] + 1
             e_throughput[node_id] = e_throughput[node_id] + 1
             t_throughput[node_id] = t_throughput[node_id] + 1
-            
+
+class GreyWolfOptimizer:
+    def __init__(self, num_wolves, num_iterations, dim_continuous, dim_discrete, lower_bound_cont, upper_bound_cont, lower_bound_disc, upper_bound_disc, fitness_function, agent):
+        self.num_wolves = num_wolves
+        self.num_iterations = num_iterations
+        self.dim_continuous = dim_continuous
+        self.dim_discrete = dim_discrete
+        self.lower_bound_cont = lower_bound_cont
+        self.upper_bound_cont = upper_bound_cont
+        self.lower_bound_disc = lower_bound_disc
+        self.upper_bound_disc = upper_bound_disc
+        self.fitness_function = fitness_function
+        self.agent = agent
+        # Initialize positions and fitness values
+        self.positions = np.zeros((num_wolves, dim_continuous + dim_discrete))
+        self.fitness = np.inf * np.ones(num_wolves)
+
+        self.alpha_pos = np.zeros(dim_continuous + dim_discrete)
+        self.alpha_score = np.inf
+
+        self.beta_pos = np.zeros(dim_continuous + dim_discrete)
+        self.beta_score = np.inf
+
+        self.delta_pos = np.zeros(dim_continuous + dim_discrete)
+        self.delta_score = np.inf
+
+    def initialize_positions(self):
+        for i in range(self.num_wolves):
+            # Continuous variables
+            self.positions[i, :self.dim_continuous] = np.random.uniform(self.lower_bound_cont, self.upper_bound_cont, self.dim_continuous)
+
+            # Discrete variables
+            self.positions[i, self.dim_continuous:] = np.random.randint(self.lower_bound_disc, self.upper_bound_disc + 1, self.dim_discrete)
+
+    def update_positions(self, a, A, C):
+        # Update position for each wolf
+        for i in range(self.num_wolves):
+            # Update continuous position
+            self.positions[i, :] = self.positions[i, :] + A[i, :] * (self.alpha_pos[:] - self.positions[i,:])
+            self.positions[i, :self.dim_continuous] = np.clip(self.positions[i, :self.dim_continuous], self.lower_bound_cont, self.upper_bound_cont)
+            # Update discrete position (rounding to nearest integer)
+            self.positions[i, self.dim_continuous:] = np.round(self.positions[i, self.dim_continuous:])
+            # Ensure the discrete variables stay within bounds
+            self.positions[i, self.dim_continuous:] = np.clip(self.positions[i, self.dim_continuous:], self.lower_bound_disc, self.upper_bound_disc)
+
+    def optimize(self):
+        self.initialize_positions()
+        #print("Initial positions {}".format(self.positions))
+
+        for t in range(self.num_iterations):
+            a = 2 - t * (2 / self.num_iterations)  # a decreases linearly from 2 to 0
+            A = 2 * a * np.random.rand(self.num_wolves, self.dim_continuous + self.dim_discrete) - a
+            C = 2 * np.random.rand(self.num_wolves, self.dim_continuous + self.dim_discrete)
+
+            for i in range(self.num_wolves):
+                # Calculate fitness value
+                agent_c = self.agent.copy()
+                fitness_value = self.fitness_function(self.positions[i], agent_c)
+                self.fitness[i] = fitness_value
+
+                # Update alpha, beta, and delta wolves
+                if fitness_value < self.alpha_score:
+                    self.alpha_score = fitness_value
+                    self.alpha_pos = self.positions[i]
+
+                elif fitness_value < self.beta_score:
+                    self.beta_score = fitness_value
+                    self.beta_pos = self.positions[i]
+
+                elif fitness_value < self.delta_score:
+                    self.delta_score = fitness_value
+                    self.delta_pos = self.positions[i]
+
+            # Update positions of wolves based on alpha, beta, delta
+            self.update_positions(a, A, C)
+            # Output current best fitness score
+            return self.alpha_pos
+
+def fitness_function(position):
+    position = position.astype(int)
+    action = [position[0], position[1], position[2]]
+    action_e = encode_vector(action)
+    return 1.0 * lookup_rewards.get(action_e)
+
+# Define parameters
+num_wolves = 10
+num_iterations = 50
+dim_continuous = 0
+dim_discrete = 3
+lower_bound_cont = -5
+upper_bound_cont = 5
+lower_bound_disc = 0
+upper_bound_disc = 4
 
 class LookupTable:
     def __init__(self):
@@ -210,8 +297,6 @@ lookup_rewards = LookupTable()
 states = np.full(NB_CLIENTS, 0)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#device = torch.device("cpu")
-
 model_path = "directory/efficientnet_b0_cat_dog_ver2.pth"
 model = efficientnet_b0(pretrained=False)
 num_features = model.classifier[1].in_features
@@ -221,8 +306,6 @@ model.classifier[1] = nn.Sequential(
 )
 model.load_state_dict(torch.load(model_path, map_location=device))
 model.to(device)
-image_0_path1 = "D:/Library/copying_to_raspberry/val/Cat/t50.png"
-image_1_path1 = "D:/Library/copying_to_raspberry/val/Dog/g50.png"
 
 part1 = nn.Sequential(*list(model.children())[:-2])
 part2 = model.classifier
@@ -257,12 +340,9 @@ client.subscribe(TOPIC)
 client.subscribe(TOPIC_EPISODE)
 client.subscribe(TOPIC_TIMESTEP)
 
-#first_layer = list(model.children())[0]
-print("Waiting for clients datainput model size {}...".format(STATE_SIZE))
-
+print("Waiting for clients data ...")
 
 import threading
 train_thread = threading.Thread(target=train, daemon = True)
 train_thread.start()
-
 client.loop_forever()
