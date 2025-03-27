@@ -71,6 +71,7 @@ def on_message(client, userdata, msg):
         throughput = int(throughput)
         energy = float(energy)
         false_class = int(false_class)
+        
         e_throughput[node_id] = e_throughput[node_id] + throughput
         e_energies[node_id] = e_energies[node_id] + energy
         e_false_class[node_id] = e_false_class[node_id] + false_class
@@ -79,7 +80,7 @@ def on_message(client, userdata, msg):
         list_e_throughput[node_id].append(e_throughput[node_id])
         list_e_false_class[node_id].append(e_false_class[node_id])
         list_e_energies[node_id].append(e_energies[node_id])
-        with open("checkpoint/"+str(node_id)+"_3_devices_random_metrics.pkl", "wb") as fd:
+        with open("checkpoint/"+str(node_id)+"_3_devices_coqrac_metrics.pkl", "wb") as fd:
             pickle.dump((list_e_reward[node_id], list_e_throughput[node_id], list_e_energies[node_id], list_e_false_class[node_id]), fd)
             e_throughput[node_id] = 0
             e_energies[node_id] = 0.0
@@ -100,7 +101,9 @@ def on_message(client, userdata, msg):
         nodes_t_energies = np.sum(t_energies)
         nodes_t_false_class = np.sum(t_false_class)
 
-        t_reward = utility(t_throughput[node_id], t_energies[node_id], t_false_class[node_id])
+        t_reward = utility(nodes_t_throughput, nodes_t_energies, nodes_t_false_class)
+        
+
 
         client = mqtt.Client()
         client.connect(BROKER_IP, 1883, 60)
