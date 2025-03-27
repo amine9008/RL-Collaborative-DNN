@@ -1,7 +1,7 @@
-import ../../Environment/EdgeDevice
-from ../../Environment/EdgeServer
-from ../../Environment/Environment
-from ../../Environment/Wrapper
+from ../../Environment/edgedevice import EdgeDevice
+from ../../Environment/edgeserver import EdgeServer
+from ../../Environment Environment import Environment
+from ../../Environment/wrapper import NQQEnvWrapper
 import numpy as np
 class GreyWolfOptimizer:
     def __init__(self, num_wolves, num_iterations, dim_continuous, dim_discrete, lower_bound_cont, upper_bound_cont, lower_bound_disc, upper_bound_disc, fitness_function, agent):
