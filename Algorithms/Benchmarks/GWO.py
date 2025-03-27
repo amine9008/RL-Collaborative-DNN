@@ -119,13 +119,13 @@ def load_progression_metrics(path):
 
 skip_inference = True
 
-datasets_root_directory = 'gdrive/MyDrive/'
-dataSourceDirectory = datasets_root_directory + 'CatsDogsDataset/root/dogcat/train/'
-subdirs = ['Cat/','Dog/']
-model_path = datasets_root_directory + 'CatsDogsDataset/DNN_MODELS/EfficientNetB3_CatsDogs.h5'
+datasets_root_directory = 'drive/'
+dataSourceDirectory = datasets_root_directory + 'Dataset/root/dogcat/train/'
+subdirs = os.path.listdir()
+model_path = datasets_root_directory + 'DNN_MODELS/EfficientNetB3_CatsDogs.h5'
 #base_model = tf.keras.models.load_model(model_path)
 base_model = tf.keras.applications.EfficientNetB3()
-marl_q_directory = datasets_root_directory + '/CatsDogsDataset/Checkpoint/gwo/'
+marl_q_directory = datasets_root_directory + '/Checkpoint/gwo/'
 
 cutLayers_B3 = [138, 256]
 cutLayers = [138, 256]
@@ -137,13 +137,11 @@ edgeDevice1 = EdgeDevice(basemodel=base_model, memory=200000, memoryC= 50000, me
 edgeDevice2 = EdgeDevice(basemodel=base_model, memory=200000, memoryC= 50000, memoryT=50000,factor=0.25,cpuFrequency=450000,transmitPower=20,dataSourceDirectory= dataSourceDirectory, subdirs = subdirs, \
                          dataSourcePath=dataSourceDirectory, cutLayers = cutLayers,input_shape=(300,300,3), fps = 6)
 
-#edgeDevice3 = EdgeDevice(basemodel=base_model, memory=200000, memoryC= 50000, memoryT=50000,factor=0.25,cpuFrequency=450000,transmitPower=20,dataSourceDirectory= dataSourceDirectory, subdirs = subdirs, \
-#                         dataSourcePath=dataSourceDirectory, cutLayers = cutLayers,input_shape=(300,300,3), fps = 6)
+edgeDevice3 = EdgeDevice(basemodel=base_model, memory=200000, memoryC= 50000, memoryT=50000,factor=0.25,cpuFrequency=450000,transmitPower=20,dataSourceDirectory= dataSourceDirectory, subdirs = subdirs, \
+                         dataSourcePath=dataSourceDirectory, cutLayers = cutLayers,input_shape=(300,300,3), fps = 6)
 
-#edgeDevices = [edgeDevice1, edgeDevice2, edgeDevice3]
-edgeDevices = [edgeDevice1, edgeDevice2]
+edgeDevices = [edgeDevice1, edgeDevice2, edgeDevice3]
 
-# CPU 8GHz, with 4flops/cycle, RAM 64GB
 edgeServer1 = EdgeServer(basemodel=base_model, memory=200000,factor=0.25,cpuFrequency=2000000,transmitPower=20,dataSourcePath=dataSourceDirectory,input_shape=(300,300,3), cutLayers = cutLayers)
 
 edgeServers = [edgeServer1]
@@ -152,16 +150,16 @@ deviceCacheIntervals = [0,25,75,100]
 serverCacheIntervals = [0,25,75,100]
 
 
-agent7 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0, \
+agent7 = Environment(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0, \
                                                          episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True, skip_inference = skip_inference)
 #qagent7 = DummyVecEnv([lambda: NQKKEnvWrapper(agent7 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)])
 #qagent7 = VecCheckNan(qagent7 , raise_exception=True)
-qagent7 = NQKKEnvWrapper(agent7 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
+qagent7 = Wrapper(agent7 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 
-print("QAGENT7 State Space, big env {}".format(qagent7.observation_space))
-print("QAGENT7 Action Space Big env {}".format(qagent7.action_space))
+print("State Space {}".format(qagent7.observation_space))
+print("Action Space {}".format(qagent7.action_space))
 
 num_episodes = 5000
 start_from_episode = 0
@@ -212,7 +210,6 @@ for episode in range(start_from_episode+1, num_episodes):
     truncated = False
     while not (done or truncated):
         # Prepare GWO Inputs
-        print("GWO step")
         optimizer = GreyWolfOptimizer(num_wolves, num_iterations, dim_continuous, dim_discrete, lower_bound_cont, upper_bound_cont, lower_bound_disc, upper_bound_disc, fitness_function, qagent7)
         position = optimizer.optimize()
         #action = [action1n[0], action2n[0], action3n[0], action1n[1], action2n[1], action3n[1], action1n[2], action2n[2], action3n[2]]
