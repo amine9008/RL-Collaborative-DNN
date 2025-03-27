@@ -1,5 +1,12 @@
 # Team Q Learning with action communication, centralized reward
 # BEST MODEL
+
+from ../../Environment/edgedevice import EdgeDevice
+from ../../Environment/edgeserver import EdgeServer
+from ../../Environment Environment import Environment
+from ../../Environment/wrapper import NQQEnvWrapper
+
+
 import pickle
 from datetime import datetime
 class QLearningAgent:
@@ -89,17 +96,17 @@ def load_progression_metrics(path):
         return (reward, throughput, energy, penalty, falseclass)
 
 
-dataSourceDirectory = datasets_root_directory + 'CatsDogsDataset/Dog and Cat .png/'
-subdirs = ['Cat/','Dog/']
-model_path = datasets_root_directory + 'CatsDogsDataset/DNN_MODELS/EfficientNetB3_CatsDogs.h5'
+dataSourceDirectory = datasets_root_directory + 'train'
+subdirs = os.path.listdir(dataSourceDirectory)
+model_path = datasets_root_directory + 'DNN_MODELS/EfficientNetB3_Trained.h5'
 base_model = tf.keras.models.load_model(model_path)
-marl_q_directory = datasets_root_directory + '/CatsDogsDataset/Checkpoint/QLearning/marlteamcom_best/'
+marl_q_directory = datasets_root_directory + '/Checkpoint/QLearning/cocraq/'
 
 
 cutLayers_B3 = [138, 256]
 cutLayers = [138, 256]
 compressionRates = [70.0, 30.0]
-#motorola CPU 0.45 GHz, with 2flops/cycle, RAM 4GB ( 200 MB for cache)
+
 edgeDevice1 = EdgeDevice(basemodel=base_model, memory=200000, memoryC= 50000, memoryT=50000,factor=0.25,cpuFrequency=450000,transmitPower=20,dataSourceDirectory= dataSourceDirectory, subdirs = subdirs, \
                          dataSourcePath=dataSourceDirectory, cutLayers = cutLayers,input_shape=(300,300,3), fps = 6)
 
@@ -123,26 +130,26 @@ serverCacheIntervals = [0,25,75,100]
 
 #old experimùent episode max length was 10
 
-agent71 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=[edgeDevice1], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
+agent71 = Environment(edgeDevices=[edgeDevice1], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
 agent71 = NQKKEnvWrapper(agent71 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 
 
 
-agent72 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=[edgeDevice2], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
+agent72 = Environment(edgeDevices=[edgeDevice2], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
 agent72 = NQKKEnvWrapper(agent72 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 
 
-agent73 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=[edgeDevice3], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
+agent73 = Environment(edgeDevices=[edgeDevice3], edgeServers = edgeServers, timestep = 1500.0, episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
 agent73 = NQKKEnvWrapper(agent73 , deviceCacheIntervals = deviceCacheIntervals, serverCacheIntervals = serverCacheIntervals)
 
 
-agent7 = NTParCollabInferenceAgentManyDevicesManyServers(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0, \
+agent7 = Environment(edgeDevices=edgeDevices, edgeServers = edgeServers, timestep = 1500.0, \
                                                          episode_max_length = 16 \
                                                          , verbose=0, compressionRates = compressionRates, resourceAllocationMode = True, \
                                                          fixedResolution= [300,300], fixedChannel= True)
@@ -156,8 +163,8 @@ qdevice3 = QTeamLearningAgent(env = agent73, bigenv=qagent7)
 
 
 
-print("QAGENT7 State Space, big env {}".format(qagent7.observation_space))
-print("QAGENT7 Action Space Big env {}".format(qagent7.action_space))
+print("QAGENT7 State Space {}".format(qagent7.observation_space))
+print("QAGENT7 Action Space {}".format(qagent7.action_space))
 # Create Q-learning agents
 
 num_episodes = 5000
@@ -217,6 +224,7 @@ for episode in range(start_from_episode+1, num_episodes):
         action3 = qdevice3.select_action(state3)
         action3n = [action3[2], action3[5], action3[8]]
 
+        # Coordination
         action = [action1n[0], action2n[0], action3n[0], action1n[1], action2n[1], action3n[1], action1n[2], action2n[2], action3n[2]]
 
         action = qagent7.vector_to_index(action)
@@ -230,7 +238,7 @@ for episode in range(start_from_episode+1, num_episodes):
         reward1 = agent71.utility(totalThroughput=throughputDevices[0], totalEnergy=energyDevices[0] ,penalty= 15.0*overflowDevices[0], totalConfidenceLevel = 0.0, totalFalseClassification = falseClassification[0])
         reward2 = agent72.utility(totalThroughput=throughputDevices[1], totalEnergy=energyDevices[1] ,penalty= 15.0*overflowDevices[1], totalConfidenceLevel = 0.0, totalFalseClassification = falseClassification[1])
         reward3 = agent73.utility(totalThroughput=throughputDevices[2], totalEnergy=energyDevices[2] ,penalty= 15.0*overflowDevices[2], totalConfidenceLevel = 0.0, totalFalseClassification = falseClassification[2])
-
+        reward = reward1 + reward2 + reward3
         next_state1 = (next_state[0], next_state[0 + 3], next_state[0 + 6], next_state[0 + 9], next_state[12], next_state[0 + 13])
         next_state2 = (next_state[1], next_state[1 + 3], next_state[1 + 6], next_state[1 + 9], next_state[12], next_state[1 + 13])
         next_state3 = (next_state[2], next_state[2 + 3], next_state[2 + 6], next_state[2 + 9], next_state[12], next_state[2 + 13])
@@ -242,8 +250,6 @@ for episode in range(start_from_episode+1, num_episodes):
         qdevice1.decay_exploration()
         qdevice2.decay_exploration()
         qdevice3.decay_exploration()
-
-        #add logic for exchanging q tables informations
 
         state = next_state
         total_reward = total_reward + reward
